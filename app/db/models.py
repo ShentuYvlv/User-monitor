@@ -39,6 +39,10 @@ class Post(Base):
     media_urls = Column(Text, nullable=True) # 存储 JSON 字符串: ["/static/...", "/static/..."]
     original_url = Column(String, nullable=True)
     
+    # 互动数据
+    like_count = Column(Integer, default=0)
+    comment_count = Column(Integer, default=0)
+
     posted_at = Column(DateTime, nullable=True) # 帖子实际发布时间
     created_at = Column(DateTime, default=datetime.utcnow) # 抓取入库时间
 

@@ -21,6 +21,8 @@ class PostBase(BaseModel):
     media_urls: Optional[Union[str, List[str]]] = None # 修改类型提示，允许接收字符串或列表
     original_url: Optional[str] = None
     posted_at: Optional[datetime] = None
+    like_count: int = 0
+    comment_count: int = 0
 
 # --- Brand Schemas ---
 

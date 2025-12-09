@@ -112,7 +112,9 @@ class InstagramService:
                 content_text=post.caption,
                 media_urls=json.dumps(media_files), # 存为 JSON 列表
                 original_url=f"https://www.instagram.com/p/{shortcode}/",
-                posted_at=post.date_utc
+                posted_at=post.date_utc,
+                like_count=post.likes,
+                comment_count=post.comments
             )
             self.db.add(new_post)
             self.db.commit()
