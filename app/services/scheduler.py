@@ -12,22 +12,31 @@ logger = logging.getLogger(__name__)
 
 scheduler = BackgroundScheduler()
 
-def task_update_all_brands():
+def task_update_all_brands(brand_name: str = None, limit: int = 10):
     """
     定时任务：轮询所有启用的品牌并抓取最新帖子
+    支持手动触发时指定品牌和数量
     """
-    logger.info("Task Started: Update all brands")
+    task_desc = f"Update brand '{brand_name}'" if brand_name else "Update all brands"
+    logger.info(f"Task Started: {task_desc} (limit={limit})")
+    
     db: Session = SessionLocal()
     try:
         service = InstagramService(db)
         
-        # 获取所有活跃品牌
-        brands = db.query(Brand).filter(Brand.is_active == True).all()
+        query = db.query(Brand).filter(Brand.is_active == True)
+        if brand_name:
+            query = query.filter(Brand.name == brand_name)
+            
+        brands = query.all()
         
+        if not brands and brand_name:
+            logger.warning(f"Brand '{brand_name}' not found or inactive.")
+            return
+
         for brand in brands:
             try:
-                # 默认抓取最新的 10 条
-                service.fetch_and_save_posts(brand, limit=10)
+                service.fetch_and_save_posts(brand, limit=limit)
             except Exception as e:
                 logger.error(f"Error updating brand {brand.name}: {e}")
                 
@@ -35,7 +44,7 @@ def task_update_all_brands():
         logger.error(f"Task Failed: {e}")
     finally:
         db.close()
-    logger.info("Task Finished: Update all brands")
+    logger.info(f"Task Finished: {task_desc}")
 
 def task_cleanup_old_media():
     """

@@ -45,8 +45,8 @@ class Settings(BaseSettings):
     IMAGES_DIR: str = "static/images"
 
     # 定时任务配置
-    SCHEDULER_INTERVAL_HOURS: int = 4
-    MEDIA_RETENTION_DAYS: int = 60
+    SCHEDULER_INTERVAL_HOURS: int = 1  # 默认每小时抓取一次
+    MEDIA_RETENTION_DAYS: int = 30     # 媒体文件保留天数
 
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env")
 
