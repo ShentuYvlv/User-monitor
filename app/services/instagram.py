@@ -3,6 +3,7 @@ import json
 import logging
 import shutil
 import time
+import random
 from datetime import datetime, timedelta
 from typing import List, Optional
 from pathlib import Path
@@ -12,12 +13,15 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.models import Brand, Post, PlatformType
+from app.utils.instagram_helper import get_random_user_agent, apply_anti_detection
 
 logger = logging.getLogger(__name__)
 
 class InstagramService:
     def __init__(self, db: Session):
         self.db = db
+        
+        # Enhanced Instaloader initialization with advanced User-Agent
         self.L = instaloader.Instaloader(
             download_pictures=True,
             download_videos=True,
@@ -26,11 +30,22 @@ class InstagramService:
             download_comments=False,
             save_metadata=False,
             compress_json=False,
-            filename_pattern="{date_utc}_UTC_{shortcode}"
+            filename_pattern="{date_utc}_UTC_{shortcode}",
+            user_agent=get_random_user_agent(), # Random realistic User-Agent
+            max_connection_attempts=3,
+            request_timeout=30.0,
         )
-        # 尝试加载 Session (如果有) - 这里可以扩展为从 .env 读取账号密码登录
+        
+        # Apply anti-detection monkey-patching (Jitter & Backoff)
+        apply_anti_detection(self.L.context._session)
+        
         # self.L.load_session_from_file(username) 
         
+    def _random_sleep(self, min_seconds=2, max_seconds=5):
+        """Simulate human-like delay (Application Layer)"""
+        sleep_time = random.uniform(min_seconds, max_seconds)
+        time.sleep(sleep_time)
+
     def fetch_and_save_posts(self, brand: Brand, limit: int = 10):
         """
         抓取指定品牌的 Instagram 帖子并存入数据库
@@ -46,6 +61,9 @@ class InstagramService:
             profile = instaloader.Profile.from_username(self.L.context, username)
         except instaloader.ProfileNotExistsException:
             logger.error(f"Instagram profile {username} not found.")
+            return
+        except instaloader.ConnectionException as e:
+            logger.error(f"Connection error fetching {username} (IP might be blocked): {e}")
             return
         except Exception as e:
             logger.error(f"Error fetching profile {username}: {e}")
@@ -77,26 +95,11 @@ class InstagramService:
 
             logger.info(f"Processing new post {shortcode}...")
             
-            # 下载逻辑
-            # Instaloader 默认下载到当前工作目录，我们需要控制它
-            # 或者我们手动下载媒体资源，这里为了利用 instaloader 的解析能力，我们使用 download_post
-            # 但 download_post 会下载到 target 目录。
-            
             target_dir = base_dir
             
             # 下载文件
             try:
-                # download_post 会下载图片、视频、文案等到 target_dir
-                # 为了避免文件名混乱，Instaloader 会使用 filename_pattern
-                # 我们需要在下载后收集生成的文件名
-                
-                # 由于 instaloader API 直接下载比较难获取确切的文件名列表用于存库，
-                # 我们这里采用 iterate over sidecars / video_url / url 手动处理更可控，
-                # 或者使用 instaloader 下载后扫描目录。
-                # 考虑到稳定性，我们手动提取 URL 并下载。
-                
                 media_files = self._download_post_media(post, target_dir)
-                
             except Exception as e:
                 logger.error(f"Failed to download media for {shortcode}: {e}")
                 media_files = []
@@ -115,8 +118,12 @@ class InstagramService:
             self.db.commit()
             
             count += 1
-            # 简单的防风控延迟
-            time.sleep(2) 
+            
+            # 每次下载后随机延迟，防止被判定为机器人
+            self._random_sleep(2, 5)
+
+        # 抓取完一个用户的所有目标帖子后，也要稍微休息一下，避免连续请求下一个用户太快
+        self._random_sleep(5, 10)
 
     def _download_post_media(self, post: instaloader.Post, save_dir: Path) -> List[str]:
         """
@@ -128,6 +135,9 @@ class InstagramService:
         timestamp_str = post.date_utc.strftime("%Y%m%d_%H%M%S")
         prefix = f"{timestamp_str}_{post.shortcode}"
         
+        # 使用 Instaloader 的 session 进行请求，这样能复用 User-Agent 等配置
+        session = self.L.context._session
+
         # 内部下载帮助函数
         def download_file(url: str, suffix: str) -> Optional[str]:
             if not url:
@@ -142,7 +152,7 @@ class InstagramService:
                     rel_path = f"/static/images/instagram/{save_dir.name}/{filename}"
                     return rel_path
 
-                response = requests.get(url, stream=True, timeout=30)
+                response = session.get(url, stream=True, timeout=30)
                 response.raise_for_status()
                 with open(filepath, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
