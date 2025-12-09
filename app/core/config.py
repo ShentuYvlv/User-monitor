@@ -8,10 +8,11 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "BrandMonitor"
     API_V1_STR: str = "/api/v1"
     
-    # 服务器基础 URL (用于生成完整的图片链接)
-    # 本地测试时可能是 http://localhost:8000
-    # 部署时应设置为服务器的公网 IP 或域名，例如 http://1.2.3.4:8000
+    # 服务器基础 URL
     SERVER_HOST: str = "http://localhost:8000"
+
+    # 安全配置
+    API_TOKEN: str = "secret-token"  # 默认值，请在 .env 中修改
 
     # 数据库配置
     POSTGRES_SERVER: str
@@ -26,8 +27,6 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return v
         
-        # 针对 PostgresDsn 的构建，不同 Pydantic 版本可能有差异
-        # 这里构建标准 postgresql://user:pass@host:port/db
         password = values.get("POSTGRES_PASSWORD")
         if not password:
             password = None
@@ -46,8 +45,8 @@ class Settings(BaseSettings):
     IMAGES_DIR: str = "static/images"
 
     # 定时任务配置
-    SCHEDULER_INTERVAL_HOURS: int = 4  # 默认4小时抓取一次
-    MEDIA_RETENTION_DAYS: int = 60     # 媒体文件保留天数
+    SCHEDULER_INTERVAL_HOURS: int = 4
+    MEDIA_RETENTION_DAYS: int = 60
 
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env")
 

@@ -8,8 +8,9 @@ from app.core.database import get_db
 from app.db import models
 from app import schemas
 from app.services.scheduler import task_update_all_brands, task_cleanup_old_media
+from app.core.security import get_api_key
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_api_key)])
 
 @router.get("/", response_model=List[schemas.Brand])
 def read_brands(
