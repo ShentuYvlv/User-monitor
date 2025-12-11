@@ -25,10 +25,13 @@ services:
     container_name: brand-monitor-twitter
     restart: always
     network_mode: host
+    env_file:
+      - .env
     environment:
-      - TWITTER_PROXY_URL=${TWITTER_PROXY_URL} # 可选，如果主 .env 里有就传
-      - TWITTER_AUTH_TOKEN=${TWITTER_AUTH_TOKEN}
-      - TWITTER_CT0=${TWITTER_CT0}
+      - TWITTER_PROXY_URL=${TWITTER_PROXY_URL} # 保留此行以支持覆盖
+      # 下面两行可以删除或保留，env_file 会自动注入所有变量
+      # - TWITTER_AUTH_TOKEN=${TWITTER_AUTH_TOKEN}
+      # - TWITTER_CT0=${TWITTER_CT0}
 
   # 3. Nginx 反向代理
   nginx:
