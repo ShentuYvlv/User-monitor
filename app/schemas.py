@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 from datetime import datetime
 import json
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, Field
 from app.db.models import PlatformType
 from app.core.config import settings
 
@@ -87,3 +87,28 @@ class Post(PostBase):
                 full_urls.append(f"{base_url}/{url}")
         
         return full_urls
+
+# --- Twitter Scraper Schemas ---
+
+class TwitterScrapeRequest(BaseModel):
+    username: str = Field(..., description="Brand Name or Twitter Username (without @)")
+    limit: int = Field(20, description="Number of tweets to fetch")
+
+class TwitterPostSchema(BaseModel):
+    id: str
+    text: str | None = None
+    timestamp: int | None = None
+    photos: List[dict] | None = []
+    videos: List[dict] | None = []
+    replies: int | None = 0
+    retweets: int | None = 0
+    likes: int | None = 0
+    views: int | None = 0
+    permanentUrl: str | None = None
+    isRetweet: bool | None = False
+    isPin: bool | None = False
+
+class TwitterScrapeResponse(BaseModel):
+    success: bool
+    count: int
+    tweets: List[TwitterPostSchema]

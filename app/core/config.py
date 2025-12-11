@@ -45,10 +45,18 @@ class Settings(BaseSettings):
     IMAGES_DIR: str = "static/images"
 
     # 定时任务配置
-    SCHEDULER_INTERVAL_HOURS: int = 1  # 默认每小时抓取一次
+    SCHEDULER_INTERVAL_HOURS: int = 2  # 默认每小时抓取一次
+    SCHEDULER_FETCH_LIMIT: int = 5    # 每次抓取的帖子数量
     MEDIA_RETENTION_DAYS: int = 30     # 媒体文件保留天数
 
-    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env")
+    # Twitter Scraper Microservice
+    TWITTER_SCRAPER_HOST: str = "http://localhost:3000"
+    TWITTER_PROXY_URL: Optional[str] = None
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+        extra = "ignore"  # 允许 .env 中存在多余变量，防止报错
 
 
 settings = Settings()
