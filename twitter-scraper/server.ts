@@ -40,7 +40,12 @@ app.post('/scrape', async (req, res) => {
     console.log(`[Twitter Scraper] Request: User=${username}, Limit=${limit}`);
 
     if (!username || !auth_token || !ct0) {
-        return res.status(400).json({ error: 'Missing username, auth_token, or ct0 (and not set in env)' });
+        const missing = [];
+        if (!username) missing.push('username');
+        if (!auth_token) missing.push('auth_token');
+        if (!ct0) missing.push('ct0');
+        console.error(`[Twitter Scraper] Missing parameters: ${missing.join(', ')}`);
+        return res.status(400).json({ error: `Missing parameters: ${missing.join(', ')} (and not found in env)` });
     }
 
     // 2. 关键调试日志：打印 Cookie 的前几位，方便比对
