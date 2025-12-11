@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 from typing import Any
 
 from app.core.database import get_db
-from app.core.security import verify_api_token
+from app.core.security import get_api_key
 from app.schemas import TwitterScrapeRequest
 from app.services.twitter import TwitterService
 from app.db import models
 
-router = APIRouter(dependencies=[Depends(verify_api_token)])
+router = APIRouter(dependencies=[Depends(get_api_key)])
 
 @router.post("/scrape", status_code=200)
 async def trigger_twitter_scrape(
